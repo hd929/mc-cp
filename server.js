@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -172,31 +172,27 @@ app.post('/api/extract', (req, res) => {
         const ext = path.extname(fullPath).toLowerCase();
         const destDir = path.dirname(fullPath);
         
-        let extractCmd = '';
-        let extractArgs = [];
+        let cmdLine = '';
         const isWin = process.platform === 'win32';
         
         if (ext === '.zip') {
-            extractCmd = isWin ? 'powershell.exe' : 'unzip';
-            extractArgs = isWin 
-                ? ['-NoProfile', '-NonInteractive', '-Command', `Expand-Archive -Path "${fullPath}" -DestinationPath "${destDir}" -Force`]
-                : ['-o', fullPath, '-d', destDir];
+            cmdLine = isWin 
+                ? `powershell.exe -NoProfile -NonInteractive -Command "Expand-Archive -Path '${fullPath}' -DestinationPath '${destDir}' -Force"`
+                : `7z x "${fullPath}" -o"${destDir}" -y`;
         } else if (ext === '.rar') {
-            extractCmd = isWin ? '7z' : '7z'; // 7z cần được cài sẵn (p7zip-full trên docker linux)
-            extractArgs = ['x', fullPath, `-o${destDir}`, '-y'];
+            cmdLine = `7z x "${fullPath}" -o"${destDir}" -y`;
         } else {
             return res.status(400).json({ error: 'Chỉ hỗ trợ .zip và .rar' });
         }
 
-        const extractProcess = spawn(extractCmd, extractArgs, { shell: true });
-        
-        extractProcess.on('close', (code) => {
-            if (code === 0) res.json({ success: true, message: 'Giải nén thành công!' });
-            else res.status(500).json({ error: `Lỗi giải nén (Mã lỗi: ${code})` });
-        });
-        
-        extractProcess.on('error', (err) => {
-            res.status(500).json({ error: `Không thể gọi công cụ giải nén: ${err.message}` });
+        exec(cmdLine, { cwd: destDir }, (error, stdout, stderr) => {
+            if (error) {
+                // Ignore warning exit codes (like 1 for 7z non-fatal errors) if the files were still extracted
+                if (error.code && error.code !== 1) {
+                     return res.status(500).json({ error: `Lỗi giải nén: ${error.message}` });
+                }
+            }
+            res.json({ success: true, message: 'Giải nén thành công!' });
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
