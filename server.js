@@ -242,6 +242,11 @@ io.on('connection', (socket) => {
             mcServer = spawn(config.javaPath || 'java', args, { cwd: MC_DIR });
             io.emit('status', 'online');
 
+            // Bắt lỗi stream socket (đặc biệt là ENOTCONN trên Proxmox LXC khi chdir / pipe bị từ chối)
+            if (mcServer.stdin) mcServer.stdin.on('error', (err) => console.error('MC stdin error:', err.message));
+            if (mcServer.stdout) mcServer.stdout.on('error', (err) => console.error('MC stdout error:', err.message));
+            if (mcServer.stderr) mcServer.stderr.on('error', (err) => console.error('MC stderr error:', err.message));
+
             const handleOutput = (data) => {
                 const text = data.toString();
                 io.emit('log', text);
