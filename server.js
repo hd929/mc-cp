@@ -136,14 +136,15 @@ app.get('/api/download', (req, res) => {
             
             if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
             
-            // Hỗ trợ cả 2 môi trường: Docker (Linux) và chạy ngoài (Windows)
+            // Hỗ trợ Linux/Windows
             const isWin = process.platform === 'win32';
-            const cmd = isWin ? 'powershell.exe' : 'zip';
+            const cmd = isWin ? 'powershell.exe' : '/usr/bin/zip';
             const args = isWin 
-                ? ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path "${targetPath}\\*" -DestinationPath "${zipPath}" -Force`]
+                ? ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path '${targetPath}\\*' -DestinationPath '${zipPath}' -Force`]
                 : ['-r', zipPath, '.'];
 
-            const procOptions = isWin ? { shell: true } : { cwd: targetPath, shell: true };
+            // Dùng spawn tuyệt đối, không nhúng qua shell tránh lỗi AppArmor trên Proxmox LXC
+            const procOptions = isWin ? { shell: false } : { cwd: targetPath, shell: false };
             const procProcess = spawn(cmd, args, procOptions);
             
             procProcess.on('close', (code) => {
@@ -152,8 +153,12 @@ app.get('/api/download', (req, res) => {
                         if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
                     });
                 } else {
-                    res.status(500).send('Lỗi khi nén thư mục (Mã code: ' + code + ')');
+                    res.status(500).send('Lỗi nén thư mục (Mã: ' + code + ')');
                 }
+            });
+            
+            procProcess.on('error', (err) => {
+                res.status(500).send('Không thể chạy công cụ nén zip: ' + err.message);
             });
         }
     } catch (e) {
@@ -172,27 +177,34 @@ app.post('/api/extract', (req, res) => {
         const ext = path.extname(fullPath).toLowerCase();
         const destDir = path.dirname(fullPath);
         
-        let cmdLine = '';
+        let extractCmd = '';
+        let extractArgs = [];
         const isWin = process.platform === 'win32';
         
         if (ext === '.zip') {
-            cmdLine = isWin 
-                ? `powershell.exe -NoProfile -NonInteractive -Command "Expand-Archive -Path '${fullPath}' -DestinationPath '${destDir}' -Force"`
-                : `7z x "${fullPath}" -o"${destDir}" -y`;
+            extractCmd = isWin ? 'powershell.exe' : '/usr/bin/unzip';
+            extractArgs = isWin 
+                ? ['-NoProfile', '-NonInteractive', '-Command', `Expand-Archive -Path '${fullPath}' -DestinationPath '${destDir}' -Force`]
+                : ['-o', fullPath, '-d', destDir];
         } else if (ext === '.rar') {
-            cmdLine = `7z x "${fullPath}" -o"${destDir}" -y`;
+            extractCmd = isWin ? '7z' : '/usr/bin/7z'; 
+            extractArgs = isWin 
+                ? ['x', fullPath, `-o${destDir}`, '-y']
+                : ['x', fullPath, `-o${destDir}`, '-y'];
         } else {
             return res.status(400).json({ error: 'Chỉ hỗ trợ .zip và .rar' });
         }
 
-        exec(cmdLine, { cwd: destDir }, (error, stdout, stderr) => {
-            if (error) {
-                // Ignore warning exit codes (like 1 for 7z non-fatal errors) if the files were still extracted
-                if (error.code && error.code !== 1) {
-                     return res.status(500).json({ error: `Lỗi giải nén: ${error.message}` });
-                }
-            }
-            res.json({ success: true, message: 'Giải nén thành công!' });
+        // Bỏ shell: true và thực thi cứng vào /usr/bin/unzip để lách chặn shell EACCES của Proxmox
+        const extractProcess = spawn(extractCmd, extractArgs, { shell: false });
+        
+        extractProcess.on('close', (code) => {
+            if (code === 0 || code === 1) res.json({ success: true, message: 'Giải nén thành công!' });
+            else res.status(500).json({ error: `Lỗi lệnh giải nén (Mã lỗi: ${code})` });
+        });
+        
+        extractProcess.on('error', (err) => {
+            res.status(500).json({ error: `Không thể gọi công cụ giải nén: ${err.message} (Vui lòng cài đặt unzip trên Linux)` });
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
