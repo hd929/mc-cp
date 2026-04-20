@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mc-panel:
+    build: .
+    container_name: minecraft-control-panel
+    ports:
+      - "3000:3000"     # Web Panel
+      - "25565:25565"   # Minecraft Server port
+    volumes:
+      # Chúng ta KHÔNG mount ./ vào /app nữa để tránh làm rác file server panel.
+      # Thay vào đó, thiết lập riêng thư mục 'server_data' bên ngoài cho Minecraft
+      - ./server_data:/app/minecraft
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1

@@ -1,0 +1,14 @@
+{
+  "name": "minecraft-cp",
+  "version": "1.0.0",
+  "description": "Minecraft Control Panel",
+  "main": "server.js",
+  "scripts": {
+    "start": "bun run server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.1.1",
+    "socket.io": "^4.7.5"
+  }
+}

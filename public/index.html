@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-cube"></i>
+                <h2 data-i18n="app-title">MC Panel</h2>
+            </div>
+            
+            <div class="server-status-card">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <div class="status-details">
+                    <h3 data-i18n="status-title">Trạng thái</h3>
+                    <p id="statusText" data-i18n="status-loading">Đang tải...</p>
+                </div>
+            </div>
+
+            <nav class="main-nav">
+                <button id="navConsole" class="nav-btn active"><i class="fa-solid fa-terminal"></i> <span data-i18n="nav-console">Console</span></button>
+                <button id="navFiles" class="nav-btn"><i class="fa-solid fa-folder-open"></i> <span data-i18n="nav-files">Quản lý File</span></button>
+                <button id="navSettings" class="nav-btn"><i class="fa-solid fa-gear"></i> <span data-i18n="nav-settings">Cài đặt</span></button>
+            </nav>
+
+            <div class="actions">
+                <button id="btnStart" class="btn btn-primary"><i class="fa-solid fa-play"></i> <span data-i18n="btn-start">Khởi động</span></button>
+                <button id="btnStop" class="btn btn-danger"><i class="fa-solid fa-power-off"></i> <span data-i18n="btn-stop">Tắt Server</span></button>
+                <div class="divider"></div>
+                <button id="btnClear" class="btn btn-secondary"><i class="fa-solid fa-eraser"></i> <span data-i18n="btn-clear">Xóa Console</span></button>
+                <button id="btnLang" class="btn btn-secondary" style="margin-top: 10px"><i class="fa-solid fa-language"></i> <span id="currentLangLabel">Tiếng Việt</span></button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content-wrapper">
+            
+            <!-- VIEW: CONSOLE -->
+            <div id="viewConsole" class="view-section active">
+                <header class="view-header">
+                    <h3><i class="fa-solid fa-terminal"></i> <span data-i18n="console-title">Server Console</span></h3>
+                </header>
+                <div class="terminal" id="terminal">
+                    <div class="welcome-msg">
+                        <i class="fa-solid fa-terminal fa-3x"></i>
+                        <h2 data-i18n="welcome-title">Chào mừng đến với MC Panel</h2>
+                        <p data-i18n="welcome-desc">Nhấn Khởi động để bật server Minecraft của bạn.</p>
+                    </div>
+                </div>
+                <form id="cmdForm" class="command-input">
+                    <span class="prompt-icon">></span>
+                    <input type="text" id="cmdInput" data-i18n-ph="cmd-placeholder" placeholder="Nhập lệnh (vd: help, op player)..." autocomplete="off">
+                    <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+
+            <!-- VIEW: FILE MANAGER -->
+            <div id="viewFiles" class="view-section">
+                <header class="view-header file-header">
+                    <h3><i class="fa-solid fa-folder-open"></i> <span data-i18n="files-title">Quản lý File</span></h3>
+                    <div class="file-actions">
+                        <input type="file" id="fileUploadInput" multiple style="display: none;">
+                        <input type="file" id="folderUploadInput" webkitdirectory directory multiple style="display: none;">
+                        <button id="btnUpload" class="btn btn-sm btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="btn-upload">Tải file</span></button>
+                        <button id="btnUploadFolder" class="btn btn-sm btn-primary"><i class="fa-solid fa-folder-arrow-up"></i> <span data-i18n="btn-upload-folder">Tải folder</span></button>
+                        <button id="btnRefresh" class="btn btn-sm btn-secondary"><i class="fa-solid fa-rotate-right"></i></button>
+                    </div>
+                </header>
+                
+                <div class="path-breadcrumb" id="breadcrumb">
+                    <span class="path-item" data-path="">/ (Gốc)</span>
+                </div>
+
+                <div class="file-list-container" id="dropZoneContainer">
+                    <div class="drop-overlay hidden" id="dropOverlay">
+                        <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
+                        <h2 data-i18n="drop-files">Thả file vào đây để tải lên</h2>
+                    </div>
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="file-name">Tên tập tin</th>
+                                <th data-i18n="file-size">Kích thước</th>
+                                <th data-i18n="file-date">Cập nhật lần cuối</th>
+                                <th data-i18n="file-action">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileListBody"></tbody>
+                    </table>
+                    <div id="uploadProgress" class="upload-progress hidden">
+                        <span data-i18n="uploading">Đang tải lên... Xin chờ!</span>
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: SETTINGS -->
+            <div id="viewSettings" class="view-section">
+                <header class="view-header">
+                    <h3><i class="fa-solid fa-gear"></i> <span data-i18n="settings-title">Cài đặt Server</span></h3>
+                </header>
+                <div class="settings-container">
+                    <form id="settingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label data-i18n="lbl-java-path">Đường dẫn Java (mặc định: java)</label>
+                            <input type="text" id="cfgJavaPath" placeholder="java">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="lbl-ram-max">RAM tối đa (Xmx)</label>
+                            <input type="text" id="cfgMaxRam" placeholder="2048M">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="lbl-ram-min">RAM tối thiểu (Xms)</label>
+                            <input type="text" id="cfgMinRam" placeholder="1024M">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="lbl-jar-file">File Server (.jar)</label>
+                            <input type="text" id="cfgJarFile" placeholder="server.jar">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="lbl-extra-args">Tham số JVM khác</label>
+                            <input type="text" id="cfgExtraArgs" placeholder="-XX:+UseG1GC ...">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 10px"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu Cài Đặt</span></button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit File Modal -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <h2 class="modal-head-title"><i class="fa-solid fa-file-pen" style="color: var(--accent);"></i> <span id="editModalTitle">Edit</span></h2>
+            <textarea id="editModalContent" class="code-editor" spellcheck="false"></textarea>
+            <div class="modal-actions">
+                <button id="btnSaveFile" class="btn btn-primary" data-i18n="btn-save">Lưu</button>
+                <button id="btnCloseEdit" class="btn btn-secondary" data-i18n="btn-close">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EULA Modal -->
+    <div id="eulaModal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fa-solid fa-file-signature text-warning"></i> <span data-i18n="eula-title">Chấp nhận EULA</span></h2>
+            <p data-i18n="eula-desc1">Minecraft yêu cầu bạn phải đồng ý với Thỏa thuận Cấp phép (EULA) mới có thể chạy.</p>
+            <p><span data-i18n="eula-desc2">Bằng việc nhấn "Đồng ý", hệ thống tự động gán </span><code>eula=true</code>.</p>
+            <div class="modal-actions">
+                <button id="btnAgreeEula" class="btn btn-primary" data-i18n="btn-agree">Đồng ý EULA</button>
+                <button id="btnCloseEula" class="btn btn-secondary" data-i18n="btn-close">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
