@@ -136,13 +136,17 @@ app.get('/api/download', (req, res) => {
             
             if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
             
-            // Sử dụng powershell để nén zip trên PC Windows
-            const psProcess = spawn('powershell.exe', [
-                '-NoProfile', '-NonInteractive', '-Command',
-                `Compress-Archive -Path "${targetPath}\\*" -DestinationPath "${zipPath}" -Force`
-            ]);
+            // Hỗ trợ cả 2 môi trường: Docker (Linux) và chạy ngoài (Windows)
+            const isWin = process.platform === 'win32';
+            const cmd = isWin ? 'powershell.exe' : 'zip';
+            const args = isWin 
+                ? ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path "${targetPath}\\*" -DestinationPath "${zipPath}" -Force`]
+                : ['-r', zipPath, '.'];
+
+            const procOptions = isWin ? {} : { cwd: targetPath };
+            const procProcess = spawn(cmd, args, procOptions);
             
-            psProcess.on('close', (code) => {
+            procProcess.on('close', (code) => {
                 if (code === 0 && fs.existsSync(zipPath)) {
                     res.download(zipPath, zipName, (err) => {
                         if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
@@ -154,6 +158,48 @@ app.get('/api/download', (req, res) => {
         }
     } catch (e) {
         res.status(500).send(e.message);
+    }
+});
+
+// EXTRACT API
+app.post('/api/extract', (req, res) => {
+    try {
+        const { targetPath } = req.body;
+        const fullPath = path.join(MC_DIR, targetPath || '');
+        if (!fullPath.startsWith(MC_DIR) || fullPath === MC_DIR) return res.status(403).json({ error: 'Thao tác không hợp lệ' });
+        if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Không tìm thấy file' });
+
+        const ext = path.extname(fullPath).toLowerCase();
+        const destDir = path.dirname(fullPath);
+        
+        let extractCmd = '';
+        let extractArgs = [];
+        const isWin = process.platform === 'win32';
+        
+        if (ext === '.zip') {
+            extractCmd = isWin ? 'powershell.exe' : 'unzip';
+            extractArgs = isWin 
+                ? ['-NoProfile', '-NonInteractive', '-Command', `Expand-Archive -Path "${fullPath}" -DestinationPath "${destDir}" -Force`]
+                : ['-o', fullPath, '-d', destDir];
+        } else if (ext === '.rar') {
+            extractCmd = isWin ? '7z' : '7z'; // 7z cần được cài sẵn (p7zip-full trên docker linux)
+            extractArgs = ['x', fullPath, `-o${destDir}`, '-y'];
+        } else {
+            return res.status(400).json({ error: 'Chỉ hỗ trợ .zip và .rar' });
+        }
+
+        const extractProcess = spawn(extractCmd, extractArgs);
+        
+        extractProcess.on('close', (code) => {
+            if (code === 0) res.json({ success: true, message: 'Giải nén thành công!' });
+            else res.status(500).json({ error: `Lỗi giải nén (Mã lỗi: ${code})` });
+        });
+        
+        extractProcess.on('error', (err) => {
+            res.status(500).json({ error: `Không thể gọi công cụ giải nén: ${err.message}` });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 

@@ -401,10 +401,15 @@ function renderFiles(files, path) {
         const isEditable = !f.isDir && EDITABLE_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext));
         const icon = f.isDir ? 'fa-folder' : (isEditable ? 'fa-file-code' : 'fa-file');
         const tPath = path ? `${path}/${f.name}` : f.name;
+        const isArchive = f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.rar');
 
         // Render Action buttons based on editability
-        let actionsHtml = `<button class="btn-download" title="Download"><i class="fa-solid fa-download"></i></button>
-                           <button class="btn-delete" title="Delete"><i class="fa-solid fa-trash-can"></i></button>`;
+        let actionsHtml = `<button class="btn-download" title="Download"><i class="fa-solid fa-download"></i></button>`;
+        if (isArchive && !f.isDir) {
+            actionsHtml = `<button class="btn-extract" title="Giải nén"><i class="fa-solid fa-file-zipper"></i></button>` + actionsHtml;
+        }
+        actionsHtml += `<button class="btn-delete" title="Delete"><i class="fa-solid fa-trash-can"></i></button>`;
+        
         if (isEditable && f.size < 2 * 1024 * 1024) { 
             actionsHtml = `<button class="btn-edit" title="Edit"><i class="fa-solid fa-pen"></i></button>` + actionsHtml; 
         }
@@ -436,6 +441,29 @@ function renderFiles(files, path) {
         tr.querySelector('.btn-download').onclick = () => {
             window.open(`/api/download?path=${encodeURIComponent(tPath)}`, '_blank');
         };
+
+        const btnExtract = tr.querySelector('.btn-extract');
+        if (btnExtract) {
+            btnExtract.onclick = async () => {
+                uploadProgress.classList.remove('hidden');
+                uploadProgress.querySelector('span').textContent = "Đang giải nén...";
+                try {
+                    const res = await fetch('/api/extract', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ targetPath: tPath })
+                    });
+                    const data = await res.json();
+                    if (res.ok) alert(data.message || 'Giải nén thành công');
+                    else alert(data.error || 'Lỗi giải nén');
+                    fetchFiles(currentPath);
+                } catch (e) { alert(e.message); }
+                finally {
+                    uploadProgress.classList.add('hidden');
+                    uploadProgress.querySelector('span').textContent = t('uploading') || "Đang xử lý...";
+                }
+            };
+        }
 
         fileListBody.appendChild(tr);
     });

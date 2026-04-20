@@ -1,8 +1,8 @@
 FROM node:20-bookworm-slim
 
-# Cài đặt Java (default-jre-headless trên Debian Bookworm cung cấp Java 17 - cực chuẩn cho Minecraft mới)
+# Cài đặt Java và công cụ (bao gồm zip, unzip, p7zip cho giải nén)
 RUN apt-get update && \
-    apt-get install -y default-jre-headless curl && \
+    apt-get install -y default-jre-headless curl zip unzip p7zip-full && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
