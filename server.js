@@ -143,7 +143,7 @@ app.get('/api/download', (req, res) => {
                 ? ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path "${targetPath}\\*" -DestinationPath "${zipPath}" -Force`]
                 : ['-r', zipPath, '.'];
 
-            const procOptions = isWin ? {} : { cwd: targetPath };
+            const procOptions = isWin ? { shell: true } : { cwd: targetPath, shell: true };
             const procProcess = spawn(cmd, args, procOptions);
             
             procProcess.on('close', (code) => {
@@ -188,7 +188,7 @@ app.post('/api/extract', (req, res) => {
             return res.status(400).json({ error: 'Chỉ hỗ trợ .zip và .rar' });
         }
 
-        const extractProcess = spawn(extractCmd, extractArgs);
+        const extractProcess = spawn(extractCmd, extractArgs, { shell: true });
         
         extractProcess.on('close', (code) => {
             if (code === 0) res.json({ success: true, message: 'Giải nén thành công!' });
