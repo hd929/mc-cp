@@ -4,7 +4,7 @@
   "description": "Minecraft Control Panel",
   "main": "server.js",
   "scripts": {
-    "start": "bun run server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
