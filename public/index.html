@@ -11,12 +11,17 @@
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <i class="fa-solid fa-cube"></i>
-                <h2 data-i18n="app-title">MC Panel</h2>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-head">
+                <div class="logo">
+                    <i class="fa-solid fa-cube"></i>
+                    <h2 data-i18n="app-title">MC Panel</h2>
+                </div>
+                <button id="btnSidebarToggle" class="icon-btn sidebar-close" title="Toggle menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            
+
             <div class="server-status-card">
                 <div class="status-indicator" id="statusIndicator"></div>
                 <div class="status-details">
@@ -28,6 +33,7 @@
             <nav class="main-nav">
                 <button id="navConsole" class="nav-btn active"><i class="fa-solid fa-terminal"></i> <span data-i18n="nav-console">Console</span></button>
                 <button id="navFiles" class="nav-btn"><i class="fa-solid fa-folder-open"></i> <span data-i18n="nav-files">Quản lý File</span></button>
+                <button id="navProperties" class="nav-btn"><i class="fa-solid fa-sliders"></i> <span data-i18n="nav-properties">Server Properties</span></button>
                 <button id="navSettings" class="nav-btn"><i class="fa-solid fa-gear"></i> <span data-i18n="nav-settings">Cài đặt</span></button>
             </nav>
 
@@ -36,13 +42,21 @@
                 <button id="btnStop" class="btn btn-danger"><i class="fa-solid fa-power-off"></i> <span data-i18n="btn-stop">Tắt Server</span></button>
                 <div class="divider"></div>
                 <button id="btnClear" class="btn btn-secondary"><i class="fa-solid fa-eraser"></i> <span data-i18n="btn-clear">Xóa Console</span></button>
-                <button id="btnLang" class="btn btn-secondary" style="margin-top: 10px"><i class="fa-solid fa-language"></i> <span id="currentLangLabel">Tiếng Việt</span></button>
+                <button id="btnLang" class="btn btn-secondary"><i class="fa-solid fa-language"></i> <span id="currentLangLabel">Tiếng Việt</span></button>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="content-wrapper">
-            
+            <!-- Mobile topbar (hamburger) -->
+            <div class="mobile-topbar">
+                <button id="btnSidebarOpen" class="icon-btn" title="Open menu"><i class="fa-solid fa-bars"></i></button>
+                <div class="mobile-logo"><i class="fa-solid fa-cube"></i><span data-i18n="app-title">MC Panel</span></div>
+                <div class="mobile-status">
+                    <span class="status-indicator status-indicator-sm" id="statusIndicatorMobile"></span>
+                </div>
+            </div>
+
             <!-- VIEW: CONSOLE -->
             <div id="viewConsole" class="view-section active">
                 <header class="view-header">
@@ -58,7 +72,7 @@
                 <form id="cmdForm" class="command-input">
                     <span class="prompt-icon">></span>
                     <input type="text" id="cmdInput" data-i18n-ph="cmd-placeholder" placeholder="Nhập lệnh (vd: help, op player)..." autocomplete="off">
-                    <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                    <button type="submit" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
             </div>
 
@@ -71,10 +85,10 @@
                         <input type="file" id="folderUploadInput" webkitdirectory directory multiple style="display: none;">
                         <button id="btnUpload" class="btn btn-sm btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="btn-upload">Tải file</span></button>
                         <button id="btnUploadFolder" class="btn btn-sm btn-primary"><i class="fa-solid fa-folder-arrow-up"></i> <span data-i18n="btn-upload-folder">Tải folder</span></button>
-                        <button id="btnRefresh" class="btn btn-sm btn-secondary"><i class="fa-solid fa-rotate-right"></i></button>
+                        <button id="btnRefresh" class="btn btn-sm btn-secondary" title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
                     </div>
                 </header>
-                
+
                 <div class="path-breadcrumb" id="breadcrumb">
                     <span class="path-item" data-path="">/ (Gốc)</span>
                 </div>
@@ -102,6 +116,29 @@
                 </div>
             </div>
 
+            <!-- VIEW: SERVER PROPERTIES -->
+            <div id="viewProperties" class="view-section">
+                <header class="view-header file-header">
+                    <h3><i class="fa-solid fa-sliders"></i> <span data-i18n="properties-title">Server Properties</span></h3>
+                    <div class="file-actions">
+                        <div class="seg-toggle" role="tablist">
+                            <button id="btnPropFormMode" class="seg-btn active" data-i18n="props-mode-form">Form</button>
+                            <button id="btnPropRawMode" class="seg-btn" data-i18n="props-mode-raw">Raw</button>
+                        </div>
+                        <input type="search" id="propSearch" class="search-input" data-i18n-ph="props-search-ph" placeholder="Tìm thuộc tính...">
+                        <button id="btnPropReload" class="btn btn-sm btn-secondary" title="Reload"><i class="fa-solid fa-rotate-right"></i></button>
+                        <button id="btnPropSave" class="btn btn-sm btn-primary"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu</span></button>
+                    </div>
+                </header>
+                <div class="properties-container" id="propertiesContainer">
+                    <div id="propBanner" class="banner hidden"></div>
+                    <div id="propFormView" class="properties-form-view"></div>
+                    <div id="propRawView" class="properties-raw-view hidden">
+                        <textarea id="propRawTextarea" class="code-editor" spellcheck="false"></textarea>
+                    </div>
+                </div>
+            </div>
+
             <!-- VIEW: SETTINGS -->
             <div id="viewSettings" class="view-section">
                 <header class="view-header">
@@ -109,32 +146,44 @@
                 </header>
                 <div class="settings-container">
                     <form id="settingsForm" class="settings-form">
-                        <div class="form-group">
-                            <label data-i18n="lbl-java-path">Đường dẫn Java (mặc định: java)</label>
-                            <input type="text" id="cfgJavaPath" placeholder="java">
+                        <div class="settings-section">
+                            <h4 class="section-title"><i class="fa-solid fa-mug-hot"></i> <span data-i18n="settings-section-java">Java &amp; JVM</span></h4>
+                            <p class="section-desc" data-i18n="settings-section-java-desc">Cấu hình runtime Java dùng để khởi chạy server.</p>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label data-i18n="lbl-java-path">Đường dẫn Java (mặc định: java)</label>
+                                    <input type="text" id="cfgJavaPath" placeholder="java">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-jar-file">File Server (.jar)</label>
+                                    <input type="text" id="cfgJarFile" placeholder="server.jar">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-ram-min">RAM tối thiểu (Xms)</label>
+                                    <input type="text" id="cfgMinRam" placeholder="1024M">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-ram-max">RAM tối đa (Xmx)</label>
+                                    <input type="text" id="cfgMaxRam" placeholder="2048M">
+                                </div>
+                                <div class="form-group form-group-wide">
+                                    <label data-i18n="lbl-extra-args">Tham số JVM khác</label>
+                                    <input type="text" id="cfgExtraArgs" placeholder="-XX:+UseG1GC ...">
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label data-i18n="lbl-ram-max">RAM tối đa (Xmx)</label>
-                            <input type="text" id="cfgMaxRam" placeholder="2048M">
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu Cài Đặt</span></button>
                         </div>
-                        <div class="form-group">
-                            <label data-i18n="lbl-ram-min">RAM tối thiểu (Xms)</label>
-                            <input type="text" id="cfgMinRam" placeholder="1024M">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="lbl-jar-file">File Server (.jar)</label>
-                            <input type="text" id="cfgJarFile" placeholder="server.jar">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="lbl-extra-args">Tham số JVM khác</label>
-                            <input type="text" id="cfgExtraArgs" placeholder="-XX:+UseG1GC ...">
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="margin-top: 10px"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu Cài Đặt</span></button>
                     </form>
                 </div>
             </div>
         </main>
+        <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
     </div>
+
+    <!-- Toasts -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Edit File Modal -->
     <div id="editModal" class="modal hidden">
@@ -157,6 +206,18 @@
             <div class="modal-actions">
                 <button id="btnAgreeEula" class="btn btn-primary" data-i18n="btn-agree">Đồng ý EULA</button>
                 <button id="btnCloseEula" class="btn btn-secondary" data-i18n="btn-close">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fa-solid fa-triangle-exclamation text-warning"></i> <span id="confirmTitle" data-i18n="confirm-title">Xác nhận</span></h2>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="btnConfirmOk" class="btn btn-primary" data-i18n="btn-confirm">Đồng ý</button>
+                <button id="btnConfirmCancel" class="btn btn-secondary" data-i18n="btn-cancel">Hủy</button>
             </div>
         </div>
     </div>
