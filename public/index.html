@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Control Panel</title>
+    <meta name="description" content="Web-based Minecraft Server Control Panel with real-time console, file manager, and server monitoring.">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏</text></svg>">
 </head>
 <body>
     <div class="app-container">
@@ -22,12 +27,15 @@
                 <div class="status-details">
                     <h3 data-i18n="status-title">Trạng thái</h3>
                     <p id="statusText" data-i18n="status-loading">Đang tải...</p>
+                    <div class="player-count" id="playerCount"></div>
                 </div>
             </div>
 
             <nav class="main-nav">
-                <button id="navConsole" class="nav-btn active"><i class="fa-solid fa-terminal"></i> <span data-i18n="nav-console">Console</span></button>
+                <button id="navDashboard" class="nav-btn active"><i class="fa-solid fa-chart-line"></i> <span data-i18n="nav-dashboard">Dashboard</span></button>
+                <button id="navConsole" class="nav-btn"><i class="fa-solid fa-terminal"></i> <span data-i18n="nav-console">Console</span></button>
                 <button id="navFiles" class="nav-btn"><i class="fa-solid fa-folder-open"></i> <span data-i18n="nav-files">Quản lý File</span></button>
+                <button id="navPlayers" class="nav-btn"><i class="fa-solid fa-users"></i> <span data-i18n="nav-players">Players</span></button>
                 <button id="navSettings" class="nav-btn"><i class="fa-solid fa-gear"></i> <span data-i18n="nav-settings">Cài đặt</span></button>
             </nav>
 
@@ -35,18 +43,62 @@
                 <button id="btnStart" class="btn btn-primary"><i class="fa-solid fa-play"></i> <span data-i18n="btn-start">Khởi động</span></button>
                 <button id="btnStop" class="btn btn-danger"><i class="fa-solid fa-power-off"></i> <span data-i18n="btn-stop">Tắt Server</span></button>
                 <div class="divider"></div>
-                <button id="btnClear" class="btn btn-secondary"><i class="fa-solid fa-eraser"></i> <span data-i18n="btn-clear">Xóa Console</span></button>
-                <button id="btnLang" class="btn btn-secondary" style="margin-top: 10px"><i class="fa-solid fa-language"></i> <span id="currentLangLabel">Tiếng Việt</span></button>
+                <div class="conn-status-bar">
+                    <div id="connIndicator" class="conn-indicator connected" title="Connected"></div>
+                    <span class="conn-label" data-i18n="conn-label">Connected</span>
+                </div>
+                <div class="divider"></div>
+                <button id="btnLang" class="btn btn-secondary"><i class="fa-solid fa-language"></i> <span id="currentLangLabel">Tiếng Việt</span></button>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="content-wrapper">
             
-            <!-- VIEW: CONSOLE -->
-            <div id="viewConsole" class="view-section active">
+            <!-- VIEW: DASHBOARD -->
+            <div id="viewDashboard" class="view-section active">
                 <header class="view-header">
+                    <h3><i class="fa-solid fa-chart-line"></i> <span data-i18n="dashboard-title">Dashboard</span></h3>
+                </header>
+                <div class="dashboard-grid" id="dashboardGrid">
+                    <div class="stat-card accent">
+                        <div class="stat-card-icon"><i class="fa-solid fa-microchip"></i></div>
+                        <div class="stat-card-value" id="statCpu">--%</div>
+                        <div class="stat-card-label" data-i18n="stat-cpu">CPU Usage</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-card-icon"><i class="fa-solid fa-memory"></i></div>
+                        <div class="stat-card-value" id="statRam">-- MB</div>
+                        <div class="stat-card-label" data-i18n="stat-ram">RAM Usage</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-card-icon"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-card-value" id="statUptime">--:--</div>
+                        <div class="stat-card-label" data-i18n="stat-uptime">Uptime</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-card-icon"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-card-value" id="statPlayers">0</div>
+                        <div class="stat-card-label" data-i18n="stat-players">Players Online</div>
+                    </div>
+                </div>
+                <div style="padding:0 1.5rem 1.5rem;flex:1;display:flex;flex-direction:column;gap:1rem;">
+                    <div class="settings-section-title"><i class="fa-solid fa-terminal"></i> <span data-i18n="quick-console">Quick Console</span></div>
+                    <div class="terminal" id="dashTerminal" style="flex:1;border-radius:10px;border:1px solid var(--border-color);min-height:200px;">
+                        <div class="welcome-msg">
+                            <i class="fa-solid fa-cube fa-3x"></i>
+                            <h2 data-i18n="welcome-title">Chào mừng đến với MC Panel</h2>
+                            <p data-i18n="welcome-desc">Nhấn Khởi động để bật server Minecraft của bạn.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CONSOLE -->
+            <div id="viewConsole" class="view-section">
+                <header class="view-header" style="justify-content:space-between;display:flex;">
                     <h3><i class="fa-solid fa-terminal"></i> <span data-i18n="console-title">Server Console</span></h3>
+                    <button id="btnClear" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eraser"></i> <span data-i18n="btn-clear">Xóa Console</span></button>
                 </header>
                 <div class="terminal" id="terminal">
                     <div class="welcome-msg">
@@ -67,8 +119,9 @@
                 <header class="view-header file-header">
                     <h3><i class="fa-solid fa-folder-open"></i> <span data-i18n="files-title">Quản lý File</span></h3>
                     <div class="file-actions">
-                        <input type="file" id="fileUploadInput" multiple style="display: none;">
-                        <input type="file" id="folderUploadInput" webkitdirectory directory multiple style="display: none;">
+                        <input type="file" id="fileUploadInput" multiple style="display:none;">
+                        <input type="file" id="folderUploadInput" webkitdirectory directory multiple style="display:none;">
+                        <button id="btnNewFolder" class="btn btn-sm btn-secondary"><i class="fa-solid fa-folder-plus"></i> <span data-i18n="btn-new-folder">Thư mục mới</span></button>
                         <button id="btnUpload" class="btn btn-sm btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="btn-upload">Tải file</span></button>
                         <button id="btnUploadFolder" class="btn btn-sm btn-primary"><i class="fa-solid fa-folder-arrow-up"></i> <span data-i18n="btn-upload-folder">Tải folder</span></button>
                         <button id="btnRefresh" class="btn btn-sm btn-secondary"><i class="fa-solid fa-rotate-right"></i></button>
@@ -77,6 +130,11 @@
                 
                 <div class="path-breadcrumb" id="breadcrumb">
                     <span class="path-item" data-path="">/ (Gốc)</span>
+                </div>
+
+                <div class="file-search">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="fileSearchInput" data-i18n-ph="search-placeholder" placeholder="Tìm kiếm file...">
                 </div>
 
                 <div class="file-list-container" id="dropZoneContainer">
@@ -102,15 +160,43 @@
                 </div>
             </div>
 
+            <!-- VIEW: PLAYERS -->
+            <div id="viewPlayers" class="view-section">
+                <header class="view-header">
+                    <h3><i class="fa-solid fa-users"></i> <span data-i18n="players-title">Quản lý Players</span></h3>
+                </header>
+                <div class="player-list" id="playerList">
+                    <div class="player-section-title"><i class="fa-solid fa-circle" style="color:var(--success);font-size:.5rem;"></i> <span data-i18n="players-online">Online</span></div>
+                    <div id="onlinePlayersList"></div>
+                    <div class="player-section-title"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="players-ops">Operators</span></div>
+                    <div id="opsPlayersList"></div>
+                    <div class="player-section-title"><i class="fa-solid fa-scroll"></i> <span data-i18n="players-whitelist">Whitelist</span></div>
+                    <div id="whitelistPlayersList"></div>
+                    <div class="player-section-title"><i class="fa-solid fa-ban"></i> <span data-i18n="players-banned">Banned</span></div>
+                    <div id="bannedPlayersList"></div>
+                </div>
+                <div class="player-cmd-bar">
+                    <input type="text" id="playerCmdInput" placeholder="Tên player..." style="flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border-color);padding:.5rem .75rem;border-radius:8px;color:var(--text-primary);font-family:inherit;outline:none;">
+                    <button class="btn btn-sm btn-primary" id="btnPlayerOp"><i class="fa-solid fa-shield-halved"></i> OP</button>
+                    <button class="btn btn-sm btn-secondary" id="btnPlayerDeop">DeOP</button>
+                    <button class="btn btn-sm btn-secondary" id="btnPlayerWhitelist"><i class="fa-solid fa-scroll"></i> Whitelist</button>
+                    <button class="btn btn-sm btn-danger" id="btnPlayerKick"><i class="fa-solid fa-user-slash"></i> Kick</button>
+                    <button class="btn btn-sm btn-danger" id="btnPlayerBan"><i class="fa-solid fa-ban"></i> Ban</button>
+                    <button class="btn btn-sm btn-secondary" id="btnPlayerPardon">Pardon</button>
+                </div>
+            </div>
+
             <!-- VIEW: SETTINGS -->
             <div id="viewSettings" class="view-section">
                 <header class="view-header">
                     <h3><i class="fa-solid fa-gear"></i> <span data-i18n="settings-title">Cài đặt Server</span></h3>
                 </header>
                 <div class="settings-container">
+                    <!-- JVM Settings -->
+                    <div class="settings-section-title"><i class="fa-solid fa-microchip"></i> JVM Settings</div>
                     <form id="settingsForm" class="settings-form">
                         <div class="form-group">
-                            <label data-i18n="lbl-java-path">Đường dẫn Java (mặc định: java)</label>
+                            <label data-i18n="lbl-java-path">Đường dẫn Java</label>
                             <input type="text" id="cfgJavaPath" placeholder="java">
                         </div>
                         <div class="form-group">
@@ -129,8 +215,22 @@
                             <label data-i18n="lbl-extra-args">Tham số JVM khác</label>
                             <input type="text" id="cfgExtraArgs" placeholder="-XX:+UseG1GC ...">
                         </div>
-                        <button type="submit" class="btn btn-primary" style="margin-top: 10px"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu Cài Đặt</span></button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-settings">Lưu Cài Đặt</span></button>
                     </form>
+
+                    <!-- Backup Section -->
+                    <div class="settings-section-title" style="margin-top:2rem;"><i class="fa-solid fa-box-archive"></i> <span data-i18n="backup-title">Backup</span></div>
+                    <div class="settings-form">
+                        <button type="button" id="btnCreateBackup" class="btn btn-primary"><i class="fa-solid fa-download"></i> <span data-i18n="btn-create-backup">Tạo Backup</span></button>
+                        <div class="backup-list" id="backupList"></div>
+                    </div>
+
+                    <!-- Server Properties -->
+                    <div class="settings-section-title" style="margin-top:2rem;"><i class="fa-solid fa-file-lines"></i> server.properties</div>
+                    <div class="settings-form" id="serverPropsForm" style="max-width:100%;">
+                        <div class="properties-grid" id="propertiesGrid"></div>
+                        <button type="button" id="btnSaveProperties" class="btn btn-primary"><i class="fa-solid fa-save"></i> <span data-i18n="btn-save-props">Lưu Properties</span></button>
+                    </div>
                 </div>
             </div>
         </main>
@@ -139,7 +239,7 @@
     <!-- Edit File Modal -->
     <div id="editModal" class="modal hidden">
         <div class="modal-content modal-large">
-            <h2 class="modal-head-title"><i class="fa-solid fa-file-pen" style="color: var(--accent);"></i> <span id="editModalTitle">Edit</span></h2>
+            <h2 class="modal-head-title"><i class="fa-solid fa-file-pen" style="color:var(--accent);"></i> <span id="editModalTitle">Edit</span></h2>
             <textarea id="editModalContent" class="code-editor" spellcheck="false"></textarea>
             <div class="modal-actions">
                 <button id="btnSaveFile" class="btn btn-primary" data-i18n="btn-save">Lưu</button>
@@ -152,7 +252,7 @@
     <div id="eulaModal" class="modal hidden">
         <div class="modal-content">
             <h2><i class="fa-solid fa-file-signature text-warning"></i> <span data-i18n="eula-title">Chấp nhận EULA</span></h2>
-            <p data-i18n="eula-desc1">Minecraft yêu cầu bạn phải đồng ý với Thỏa thuận Cấp phép (EULA) mới có thể chạy.</p>
+            <p data-i18n="eula-desc1">Minecraft yêu cầu bạn phải đồng ý với EULA để chạy.</p>
             <p><span data-i18n="eula-desc2">Bằng việc nhấn "Đồng ý", hệ thống tự động gán </span><code>eula=true</code>.</p>
             <div class="modal-actions">
                 <button id="btnAgreeEula" class="btn btn-primary" data-i18n="btn-agree">Đồng ý EULA</button>
@@ -161,7 +261,13 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu hidden"></div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script src="app.js" defer></script>
 </body>
 </html>

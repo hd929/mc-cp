@@ -2,11 +2,38 @@
   "name": "minecraft-cp",
   "version": "1.0.0",
   "description": "Minecraft Control Panel",
-  "main": "server.js",
+  "author": "Minecraft Admin",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node --max-old-space-size=256 server.js",
+    "app": "electron .",
+    "app:dev": "NODE_ENV=development electron .",
+    "build": "electron-builder --win portable",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "build": {
+    "appId": "com.minecraft.panel",
+    "productName": "Minecraft Panel",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable"
+    },
+    "files": [
+      "**/*",
+      "!minecraft",
+      "!dist",
+      "!Aji.zip"
+    ]
   },
   "dependencies": {
+    "compression": "^1.7.4",
     "express": "^4.19.2",
     "multer": "^2.1.1",
     "socket.io": "^4.7.5"

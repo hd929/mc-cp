@@ -17,3 +17,15 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    # Resource limits to prevent host exhaustion
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Ho_Chi_Minh

@@ -1,5 +1,17 @@
 node_modules/
 .git/
 .vscode/
+.idea/
+*.md
+*.log
 npm-debug.log
 bun.lockb
+dist/
+backups/
+minecraft/
+server_data/
+config.json
+.env
+*.zip
+*.rar
+.DS_Store
